@@ -91,6 +91,20 @@
   width: 100%;
 }
 
+.rsi-wrapper {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid #333;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.rsi-chart-container {
+  height: 200px;
+  width: 100%;
+}
+
 .data-info {
   background: #1a1a1a;
   border-radius: 12px;
@@ -132,6 +146,14 @@
     height: 300px;
   }
   
+  .rsi-wrapper {
+    padding: 1rem;
+  }
+  
+  .rsi-chart-container {
+    height: 150px;
+  }
+  
   .data-info {
     padding: 1rem;
   }
@@ -148,5 +170,9 @@
   
   .chart-container {
     height: 250px;
+  }
+  
+  .rsi-chart-container {
+    height: 120px;
   }
 }
