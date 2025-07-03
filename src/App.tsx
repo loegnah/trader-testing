@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useCallback } from 'react'
 import { CandlestickChart, type CandlestickChartRef } from './components/CandlestickChart'
 import { RSIChart, type RSIChartRef } from './components/RSIChart'
 import { generateCandleData } from './utils/generateCandleData'
@@ -11,6 +11,33 @@ function App() {
   
   const candleChartRef = useRef<CandlestickChartRef>(null)
   const rsiChartRef = useRef<RSIChartRef>(null)
+  const isUpdatingRef = useRef<string | null>(null)
+
+  const handleCandleZoom = useCallback((min: number, max: number) => {
+    if (isUpdatingRef.current === 'candle') return
+    
+    isUpdatingRef.current = 'rsi'
+    if (rsiChartRef.current) {
+      rsiChartRef.current.zoomToRange(min, max)
+    }
+    
+    setTimeout(() => {
+      isUpdatingRef.current = null
+    }, 200)
+  }, [])
+
+  const handleRsiZoom = useCallback((min: number, max: number) => {
+    if (isUpdatingRef.current === 'rsi') return
+    
+    isUpdatingRef.current = 'candle'
+    if (candleChartRef.current) {
+      candleChartRef.current.zoomToRange(min, max)
+    }
+    
+    setTimeout(() => {
+      isUpdatingRef.current = null
+    }, 200)
+  }, [])
 
   const handleResetZoom = () => {
     candleChartRef.current?.resetZoom()
@@ -34,6 +61,7 @@ function App() {
             ref={candleChartRef}
             data={candleData} 
             title="Sample Trading Data"
+            onZoom={handleCandleZoom}
           />
         </div>
         
@@ -42,6 +70,7 @@ function App() {
             ref={rsiChartRef}
             data={rsiData} 
             title="RSI (14)"
+            onZoom={handleRsiZoom}
           />
         </div>
         

@@ -11,7 +11,7 @@ import { CandlestickController, CandlestickElement } from 'chartjs-chart-financi
 import zoomPlugin from 'chartjs-plugin-zoom';
 import 'chartjs-adapter-date-fns';
 import type { CandleData } from '../types/candle';
-import { useRef, forwardRef, useImperativeHandle } from 'react';
+import { useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
 
 ChartJS.register(
   CategoryScale,
@@ -27,19 +27,36 @@ ChartJS.register(
 type CandlestickChartProps = {
   data: CandleData[];
   title?: string;
+  onZoom?: (min: number, max: number) => void;
 };
 
 export type CandlestickChartRef = {
   resetZoom: () => void;
+  zoomToRange: (min: number, max: number) => void;
 };
 
-export const CandlestickChart = forwardRef<CandlestickChartRef, CandlestickChartProps>(({ data, title = "Candlestick Chart" }, ref) => {
+export const CandlestickChart = forwardRef<CandlestickChartRef, CandlestickChartProps>(({ data, title = "Candlestick Chart", onZoom }, ref) => {
   const chartRef = useRef<ChartJS>(null);
+  const debounceTimerRef = useRef<number | null>(null);
+
+  const debouncedOnZoom = useCallback((min: number, max: number) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      onZoom?.(min, max);
+    }, 50);
+  }, [onZoom]);
 
   useImperativeHandle(ref, () => ({
     resetZoom: () => {
       if (chartRef.current) {
         chartRef.current.resetZoom();
+      }
+    },
+    zoomToRange: (min: number, max: number) => {
+      if (chartRef.current) {
+        chartRef.current.zoomScale('x', { min, max }, 'none');
       }
     }
   }), []);
@@ -102,10 +119,22 @@ export const CandlestickChart = forwardRef<CandlestickChartRef, CandlestickChart
             enabled: true,
           },
           mode: 'x' as const,
+          onZoom: (context: any) => {
+            if (context.chart.scales.x) {
+              const { min, max } = context.chart.scales.x;
+              debouncedOnZoom(min, max);
+            }
+          },
         },
         pan: {
           enabled: true,
           mode: 'x' as const,
+          onPan: (context: any) => {
+            if (context.chart.scales.x) {
+              const { min, max } = context.chart.scales.x;
+              debouncedOnZoom(min, max);
+            }
+          },
         },
         limits: {
           x: {

@@ -14,7 +14,7 @@ import { Line } from 'react-chartjs-2';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import 'chartjs-adapter-date-fns';
 import type { RSIData } from '../utils/rsiCalculator';
-import { useRef, forwardRef, useImperativeHandle } from 'react';
+import { useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
 
 ChartJS.register(
   CategoryScale,
@@ -32,19 +32,36 @@ ChartJS.register(
 type RSIChartProps = {
   data: RSIData[];
   title?: string;
+  onZoom?: (min: number, max: number) => void;
 };
 
 export type RSIChartRef = {
   resetZoom: () => void;
+  zoomToRange: (min: number, max: number) => void;
 };
 
-export const RSIChart = forwardRef<RSIChartRef, RSIChartProps>(({ data, title = "RSI (14)" }, ref) => {
+export const RSIChart = forwardRef<RSIChartRef, RSIChartProps>(({ data, title = "RSI (14)", onZoom }, ref) => {
   const chartRef = useRef<any>(null);
+  const debounceTimerRef = useRef<number | null>(null);
+
+  const debouncedOnZoom = useCallback((min: number, max: number) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      onZoom?.(min, max);
+    }, 50);
+  }, [onZoom]);
 
   useImperativeHandle(ref, () => ({
     resetZoom: () => {
       if (chartRef.current) {
         chartRef.current.resetZoom();
+      }
+    },
+    zoomToRange: (min: number, max: number) => {
+      if (chartRef.current) {
+        chartRef.current.zoomScale('x', { min, max }, 'none');
       }
     }
   }), []);
@@ -132,10 +149,22 @@ export const RSIChart = forwardRef<RSIChartRef, RSIChartProps>(({ data, title = 
             enabled: true,
           },
           mode: 'x' as const,
+          onZoom: (context: any) => {
+            if (context.chart.scales.x) {
+              const { min, max } = context.chart.scales.x;
+              debouncedOnZoom(min, max);
+            }
+          },
         },
         pan: {
           enabled: true,
           mode: 'x' as const,
+          onPan: (context: any) => {
+            if (context.chart.scales.x) {
+              const { min, max } = context.chart.scales.x;
+              debouncedOnZoom(min, max);
+            }
+          },
         },
         limits: {
           x: {
