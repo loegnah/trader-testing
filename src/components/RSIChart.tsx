@@ -11,8 +11,10 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import zoomPlugin from 'chartjs-plugin-zoom';
 import 'chartjs-adapter-date-fns';
 import type { RSIData } from '../utils/rsiCalculator';
+import { useRef, forwardRef, useImperativeHandle } from 'react';
 
 ChartJS.register(
   CategoryScale,
@@ -23,7 +25,8 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
+  zoomPlugin
 );
 
 type RSIChartProps = {
@@ -31,7 +34,20 @@ type RSIChartProps = {
   title?: string;
 };
 
-export const RSIChart = ({ data, title = "RSI (14)" }: RSIChartProps) => {
+export type RSIChartRef = {
+  resetZoom: () => void;
+};
+
+export const RSIChart = forwardRef<RSIChartRef, RSIChartProps>(({ data, title = "RSI (14)" }, ref) => {
+  const chartRef = useRef<any>(null);
+
+  useImperativeHandle(ref, () => ({
+    resetZoom: () => {
+      if (chartRef.current) {
+        chartRef.current.resetZoom();
+      }
+    }
+  }), []);
   const chartData = {
     datasets: [
       {
@@ -107,6 +123,27 @@ export const RSIChart = ({ data, title = "RSI (14)" }: RSIChartProps) => {
         },
         filter: (tooltipItem: any) => tooltipItem.datasetIndex === 0,
       },
+      zoom: {
+        zoom: {
+          wheel: {
+            enabled: true,
+          },
+          pinch: {
+            enabled: true,
+          },
+          mode: 'x' as const,
+        },
+        pan: {
+          enabled: true,
+          mode: 'x' as const,
+        },
+        limits: {
+          x: {
+            min: 'original' as const,
+            max: 'original' as const,
+          },
+        },
+      },
     },
     scales: {
       x: {
@@ -144,7 +181,7 @@ export const RSIChart = ({ data, title = "RSI (14)" }: RSIChartProps) => {
 
   return (
     <div className="rsi-chart-container">
-      <Line data={chartData} options={options} />
+      <Line ref={chartRef} data={chartData} options={options} />
     </div>
   );
-}; 
+}); 

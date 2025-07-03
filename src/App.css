@@ -71,6 +71,34 @@
   color: #888;
 }
 
+.zoom-info {
+  font-size: 0.9rem !important;
+  color: #aaa !important;
+  margin: 0.3rem 0 !important;
+}
+
+.reset-zoom-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #00d4ff 0%, #5b86e5 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-zoom-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 212, 255, 0.3);
+}
+
+.reset-zoom-btn:active {
+  transform: translateY(0);
+}
+
 .app-main {
   padding: 2rem 1rem;
   max-width: 1200px;

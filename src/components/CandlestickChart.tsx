@@ -8,8 +8,10 @@ import {
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
+import zoomPlugin from 'chartjs-plugin-zoom';
 import 'chartjs-adapter-date-fns';
 import type { CandleData } from '../types/candle';
+import { useRef, forwardRef, useImperativeHandle } from 'react';
 
 ChartJS.register(
   CategoryScale,
@@ -18,7 +20,8 @@ ChartJS.register(
   Tooltip,
   Legend,
   CandlestickController,
-  CandlestickElement
+  CandlestickElement,
+  zoomPlugin
 );
 
 type CandlestickChartProps = {
@@ -26,7 +29,20 @@ type CandlestickChartProps = {
   title?: string;
 };
 
-export const CandlestickChart = ({ data, title = "Candlestick Chart" }: CandlestickChartProps) => {
+export type CandlestickChartRef = {
+  resetZoom: () => void;
+};
+
+export const CandlestickChart = forwardRef<CandlestickChartRef, CandlestickChartProps>(({ data, title = "Candlestick Chart" }, ref) => {
+  const chartRef = useRef<ChartJS>(null);
+
+  useImperativeHandle(ref, () => ({
+    resetZoom: () => {
+      if (chartRef.current) {
+        chartRef.current.resetZoom();
+      }
+    }
+  }), []);
   const chartData = {
     datasets: [
       {
@@ -77,6 +93,27 @@ export const CandlestickChart = ({ data, title = "Candlestick Chart" }: Candlest
           },
         },
       },
+      zoom: {
+        zoom: {
+          wheel: {
+            enabled: true,
+          },
+          pinch: {
+            enabled: true,
+          },
+          mode: 'x' as const,
+        },
+        pan: {
+          enabled: true,
+          mode: 'x' as const,
+        },
+        limits: {
+          x: {
+            min: 'original' as const,
+            max: 'original' as const,
+          },
+        },
+      },
     },
     scales: {
       x: {
@@ -107,7 +144,7 @@ export const CandlestickChart = ({ data, title = "Candlestick Chart" }: Candlest
 
   return (
     <div className="chart-container">
-      <Chart type="candlestick" data={chartData} options={options} />
+      <Chart ref={chartRef} type="candlestick" data={chartData} options={options} />
     </div>
   );
-}; 
+}); 

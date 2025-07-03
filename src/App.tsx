@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
-import { CandlestickChart } from './components/CandlestickChart'
-import { RSIChart } from './components/RSIChart'
+import { useMemo, useRef } from 'react'
+import { CandlestickChart, type CandlestickChartRef } from './components/CandlestickChart'
+import { RSIChart, type RSIChartRef } from './components/RSIChart'
 import { generateCandleData } from './utils/generateCandleData'
 import { calculateRSI } from './utils/rsiCalculator'
 import './App.css'
@@ -8,26 +8,40 @@ import './App.css'
 function App() {
   const candleData = useMemo(() => generateCandleData(50), [])
   const rsiData = useMemo(() => calculateRSI(candleData, 14), [candleData])
+  
+  const candleChartRef = useRef<CandlestickChartRef>(null)
+  const rsiChartRef = useRef<RSIChartRef>(null)
+
+  const handleResetZoom = () => {
+    candleChartRef.current?.resetZoom()
+    rsiChartRef.current?.resetZoom()
+  }
 
   return (
     <div className="app">
       <header className="app-header">
         <h1>Trading Strategy Tester</h1>
         <p>Candlestick Chart Analysis</p>
+        <p className="zoom-info">Use mouse wheel to zoom, click and drag to pan</p>
+        <button className="reset-zoom-btn" onClick={handleResetZoom}>
+          Reset Zoom
+        </button>
       </header>
       
       <main className="app-main">
-        <div className="chart-wrapper">
+                <div className="chart-wrapper">
           <CandlestickChart 
+            ref={candleChartRef}
             data={candleData} 
-            title="Sample Trading Data" 
+            title="Sample Trading Data"
           />
         </div>
         
         <div className="rsi-wrapper">
           <RSIChart 
+            ref={rsiChartRef}
             data={rsiData} 
-            title="RSI (14)" 
+            title="RSI (14)"
           />
         </div>
         
