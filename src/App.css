@@ -77,6 +77,36 @@
   margin: 0.3rem 0 !important;
 }
 
+.chart-selector {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.chart-selector-btn {
+  padding: 0.5rem 1rem;
+  background: #333;
+  color: #ccc;
+  border: 1px solid #555;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chart-selector-btn:hover {
+  background: #444;
+  color: #fff;
+}
+
+.chart-selector-btn.active {
+  background: linear-gradient(135deg, #00d4ff 0%, #5b86e5 100%);
+  color: white;
+  border-color: #00d4ff;
+}
+
 .reset-zoom-btn {
   margin-top: 1rem;
   padding: 0.5rem 1rem;

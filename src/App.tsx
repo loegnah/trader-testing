@@ -1,15 +1,18 @@
-import { useMemo, useRef, useCallback } from 'react'
+import { useMemo, useRef, useCallback, useState } from 'react'
 import { CandlestickChart, type CandlestickChartRef } from './components/CandlestickChart'
+import { CandlestickChartECharts, type CandlestickChartEChartsRef } from './components/CandlestickChartECharts'
 import { RSIChart, type RSIChartRef } from './components/RSIChart'
 import { generateCandleData } from './utils/generateCandleData'
 import { calculateRSI } from './utils/rsiCalculator'
 import './App.css'
 
 function App() {
+  const [chartType, setChartType] = useState<'chartjs' | 'echarts'>('chartjs')
   const candleData = useMemo(() => generateCandleData(50), [])
   const rsiData = useMemo(() => calculateRSI(candleData, 14), [candleData])
   
   const candleChartRef = useRef<CandlestickChartRef>(null)
+  const candleEChartsRef = useRef<CandlestickChartEChartsRef>(null)
   const rsiChartRef = useRef<RSIChartRef>(null)
   const isUpdatingRef = useRef<string | null>(null)
 
@@ -30,17 +33,23 @@ function App() {
     if (isUpdatingRef.current === 'rsi') return
     
     isUpdatingRef.current = 'candle'
-    if (candleChartRef.current) {
+    if (chartType === 'chartjs' && candleChartRef.current) {
       candleChartRef.current.zoomToRange(min, max)
+    } else if (chartType === 'echarts' && candleEChartsRef.current) {
+      candleEChartsRef.current.zoomToRange(min, max)
     }
     
     setTimeout(() => {
       isUpdatingRef.current = null
     }, 200)
-  }, [])
+  }, [chartType])
 
   const handleResetZoom = () => {
-    candleChartRef.current?.resetZoom()
+    if (chartType === 'chartjs') {
+      candleChartRef.current?.resetZoom()
+    } else {
+      candleEChartsRef.current?.resetZoom()
+    }
     rsiChartRef.current?.resetZoom()
   }
 
@@ -49,6 +58,22 @@ function App() {
       <header className="app-header">
         <h1>Trading Strategy Tester</h1>
         <p>Candlestick Chart Analysis</p>
+        
+        <div className="chart-selector">
+          <button 
+            className={`chart-selector-btn ${chartType === 'chartjs' ? 'active' : ''}`}
+            onClick={() => setChartType('chartjs')}
+          >
+            Chart.js
+          </button>
+          <button 
+            className={`chart-selector-btn ${chartType === 'echarts' ? 'active' : ''}`}
+            onClick={() => setChartType('echarts')}
+          >
+            ECharts
+          </button>
+        </div>
+        
         <p className="zoom-info">Use mouse wheel to zoom, click and drag to pan</p>
         <button className="reset-zoom-btn" onClick={handleResetZoom}>
           Reset Zoom
@@ -56,13 +81,22 @@ function App() {
       </header>
       
       <main className="app-main">
-                <div className="chart-wrapper">
-          <CandlestickChart 
-            ref={candleChartRef}
-            data={candleData} 
-            title="Sample Trading Data"
-            onZoom={handleCandleZoom}
-          />
+        <div className="chart-wrapper">
+          {chartType === 'chartjs' ? (
+            <CandlestickChart 
+              ref={candleChartRef}
+              data={candleData} 
+              title="Sample Trading Data (Chart.js)"
+              onZoom={handleCandleZoom}
+            />
+          ) : (
+            <CandlestickChartECharts 
+              ref={candleEChartsRef}
+              data={candleData} 
+              title="Sample Trading Data (ECharts)"
+              onZoom={handleCandleZoom}
+            />
+          )}
         </div>
         
         <div className="rsi-wrapper">
