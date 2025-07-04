@@ -66,6 +66,13 @@ export const CandlestickChartECharts = forwardRef<CandlestickChartEChartsRef, Ca
       candle.high
     ]);
 
+    // Calculate Y-axis range based on data
+    const allPrices = data.flatMap(candle => [candle.open, candle.close, candle.low, candle.high]);
+    const minPrice = Math.min(...allPrices);
+    const maxPrice = Math.max(...allPrices);
+    const priceRange = maxPrice - minPrice;
+    const padding = priceRange * 0.05; // 5% padding
+
     const option: EChartsOption = {
       title: {
         text: title,
@@ -120,6 +127,9 @@ export const CandlestickChartECharts = forwardRef<CandlestickChartEChartsRef, Ca
       },
       yAxis: {
         type: 'value',
+        min: minPrice - padding,
+        max: maxPrice + padding,
+        scale: true,
         splitArea: {
           show: true,
           areaStyle: {
