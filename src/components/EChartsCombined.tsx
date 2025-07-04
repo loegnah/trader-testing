@@ -1,14 +1,18 @@
 import type { EChartsOption } from "echarts";
 import ReactECharts from "echarts-for-react";
-import {
-  forwardRef,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import type { CandleData } from "../types/candle";
 import type { RSIData } from "../utils/rsiCalculator";
+
+const upColor = "#00C851";
+const downColor = "#ff4444";
+const zoomRange = { start: 0, end: 100 };
+const dynamicSizes = {
+  rsiSymbol: 10,
+  rsiFont: 6,
+  memoSymbol: 30,
+  memoFont: 8,
+};
 
 type Memo = {
   index: number;
@@ -44,24 +48,15 @@ export const EChartsCombined = forwardRef<
     ref,
   ) => {
     const chartRef = useRef<ReactECharts>(null);
-    const [zoomRange, setZoomRange] = useState({ start: 0, end: 100 });
-    const [dynamicSizes, setDynamicSizes] = useState({
-      rsiSymbol: 10,
-      rsiFont: 6,
-      memoSymbol: 30,
-      memoFont: 8,
-    });
 
     useImperativeHandle(
       ref,
       () => ({
         resetZoom: () => {
-          setZoomRange({ start: 0, end: 100 });
-          setDynamicSizes({
-            rsiSymbol: 10,
-            rsiFont: 6,
-            memoSymbol: 30,
-            memoFont: 8,
+          chartRef.current?.getEchartsInstance()?.dispatchAction({
+            type: "dataZoom",
+            start: 0,
+            end: 100,
           });
         },
       }),
@@ -180,231 +175,209 @@ export const EChartsCombined = forwardRef<
         });
 
         return { categoryData, candleValues, rsiValues, markPoints };
-      }, [candleData, rsiData, rsiLines, memos, dynamicSizes]);
+      }, [candleData, rsiData, rsiLines, memos]);
 
-    const upColor = "#00C851";
-    const downColor = "#ff4444";
-
-    const option: EChartsOption = {
-      animation: false,
-      backgroundColor: "#000000",
-      title: {
-        text: title,
-        left: "center",
-        textStyle: {
-          color: "#fff",
-        },
-      },
-      legend: {
-        bottom: 30,
-        left: "center",
-        data: ["Candlestick", "RSI"],
-        textStyle: {
-          color: "#fff",
-        },
-      },
-      tooltip: {
-        trigger: "axis",
-        axisPointer: {
-          type: "cross",
-        },
-        borderWidth: 1,
-        borderColor: "#ccc",
-        padding: 10,
-        textStyle: {
-          color: "#fff",
-        },
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        formatter: (params: any) => {
-          const candleParams = params.find(
-            (p: any) => p.seriesType === "candlestick",
-          );
-          const rsiParams = params.find((p: any) => p.seriesName === "RSI");
-
-          if (!candleParams) return "";
-
-          let res = `Date: ${candleParams.axisValue}<br/>`;
-
-          const data = candleParams.data;
-          res += `Open: ${data[1].toFixed(2)}<br/>`;
-          res += `Close: ${data[2].toFixed(2)}<br/>`;
-          res += `Low: ${data[3].toFixed(2)}<br/>`;
-          res += `High: ${data[4].toFixed(2)}<br/>`;
-
-          if (rsiParams) {
-            res += `RSI: ${rsiParams.data.toFixed(2)}<br/>`;
-          }
-
-          return res;
-        },
-      },
-      axisPointer: {
-        link: [
-          {
-            xAxisIndex: "all",
-          },
-        ],
-        label: {
-          backgroundColor: "#777",
-        },
-      },
-      grid: [
-        {
-          left: "10%",
-          right: "8%",
-          height: "50%",
-        },
-        {
-          left: "10%",
-          right: "8%",
-          top: "68%",
-          height: "16%",
-        },
-      ],
-      xAxis: [
-        {
-          type: "category",
-          data: categoryData,
-          boundaryGap: false,
-          axisLine: { onZero: false, lineStyle: { color: "#fff" } },
-          splitLine: { show: false },
-          min: "dataMin",
-          max: "dataMax",
-          axisPointer: {
-            z: 100,
-          },
-        },
-        {
-          type: "category",
-          gridIndex: 1,
-          data: categoryData,
-          boundaryGap: false,
-          axisLine: { onZero: false },
-          axisTick: { show: false },
-          splitLine: { show: false },
-          axisLabel: { show: false },
-          min: "dataMin",
-          max: "dataMax",
-        },
-      ],
-      yAxis: [
-        {
-          scale: true,
-          splitArea: {
-            show: false,
-          },
-          axisLine: {
-            lineStyle: { color: "#fff" },
-          },
-          splitLine: {
-            show: false,
-          },
-          axisLabel: {
+    const option: EChartsOption = useMemo(() => {
+      return {
+        animation: false,
+        backgroundColor: "#000000",
+        title: {
+          text: title,
+          left: "center",
+          textStyle: {
             color: "#fff",
           },
         },
-        {
-          scale: true,
-          gridIndex: 1,
-          splitNumber: 2,
-          axisLabel: { show: false },
-          axisLine: { show: false },
-          axisTick: { show: false },
-          splitLine: { show: false },
-          splitArea: { show: false },
-        },
-      ],
-      dataZoom: [
-        {
-          type: "inside",
-          xAxisIndex: [0, 1],
-          start: zoomRange.start,
-          end: zoomRange.end,
-        },
-        {
-          show: true,
-          xAxisIndex: [0, 1],
-          type: "slider",
-          top: "90%",
-          start: zoomRange.start,
-          end: zoomRange.end,
-          textStyle: { color: "#fff" },
-        },
-      ],
-      series: [
-        {
-          name: "Candlestick",
-          type: "candlestick",
-          data: candleValues,
-          itemStyle: {
-            color: upColor,
-            color0: downColor,
-            borderColor: upColor,
-            borderColor0: downColor,
-          },
-          markPoint: {
-            data: markPoints,
+        legend: {
+          bottom: 30,
+          left: "center",
+          data: ["Candlestick", "RSI"],
+          textStyle: {
+            color: "#fff",
           },
         },
-        {
-          name: "RSI",
-          type: "line",
-          xAxisIndex: 1,
-          yAxisIndex: 1,
-          data: rsiValues,
-          smooth: true,
-          lineStyle: {
-            width: 2,
-            color: "#f0b90b",
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            type: "cross",
           },
-          markLine: {
-            silent: true,
-            data: rsiLines.map((line) => ({
-              yAxis: line,
-              lineStyle: {
-                color: line > 50 ? "#00C851" : "#ff4444",
-                type: "dashed",
-              },
-              label: {
-                formatter: `(${line})`,
-              },
-            })),
+          borderWidth: 1,
+          borderColor: "#ccc",
+          padding: 10,
+          textStyle: {
+            color: "#fff",
+          },
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          formatter: (params: any) => {
+            const candleParams = params.find(
+              (p: any) => p.seriesType === "candlestick",
+            );
+            const rsiParams = params.find((p: any) => p.seriesName === "RSI");
+
+            if (!candleParams) return "";
+
+            let res = `Date: ${candleParams.axisValue}<br/>`;
+
+            const data = candleParams.data;
+            res += `Open: ${data[1].toFixed(2)}<br/>`;
+            res += `Close: ${data[2].toFixed(2)}<br/>`;
+            res += `Low: ${data[3].toFixed(2)}<br/>`;
+            res += `High: ${data[4].toFixed(2)}<br/>`;
+
+            if (rsiParams) {
+              res += `RSI: ${rsiParams.data.toFixed(2)}<br/>`;
+            }
+
+            return res;
           },
         },
-      ],
-    };
+        axisPointer: {
+          link: [
+            {
+              xAxisIndex: "all",
+            },
+          ],
+          label: {
+            backgroundColor: "#777",
+          },
+        },
+        grid: [
+          {
+            left: "10%",
+            right: "8%",
+            height: "50%",
+          },
+          {
+            left: "10%",
+            right: "8%",
+            top: "68%",
+            height: "16%",
+          },
+        ],
+        xAxis: [
+          {
+            type: "category",
+            data: categoryData,
+            boundaryGap: false,
+            axisLine: { onZero: false, lineStyle: { color: "#fff" } },
+            splitLine: { show: false },
+            min: "dataMin",
+            max: "dataMax",
+            axisPointer: {
+              z: 100,
+            },
+          },
+          {
+            type: "category",
+            gridIndex: 1,
+            data: categoryData,
+            boundaryGap: false,
+            axisLine: { onZero: false },
+            axisTick: { show: false },
+            splitLine: { show: false },
+            axisLabel: { show: false },
+            min: "dataMin",
+            max: "dataMax",
+          },
+        ],
+        yAxis: [
+          {
+            scale: true,
+            splitArea: {
+              show: false,
+            },
+            axisLine: {
+              lineStyle: { color: "#fff" },
+            },
+            splitLine: {
+              show: false,
+            },
+            axisLabel: {
+              color: "#fff",
+            },
+          },
+          {
+            scale: true,
+            gridIndex: 1,
+            splitNumber: 2,
+            axisLabel: { show: false },
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { show: false },
+            splitArea: { show: false },
+          },
+        ],
+        dataZoom: [
+          {
+            type: "inside",
+            xAxisIndex: [0, 1],
+            start: zoomRange.start,
+            end: zoomRange.end,
+          },
+          {
+            show: true,
+            xAxisIndex: [0, 1],
+            type: "slider",
+            top: "90%",
+            start: zoomRange.start,
+            end: zoomRange.end,
+            textStyle: { color: "#fff" },
+          },
+        ],
+        series: [
+          {
+            name: "Candlestick",
+            type: "candlestick",
+            data: candleValues,
+            itemStyle: {
+              color: upColor,
+              color0: downColor,
+              borderColor: upColor,
+              borderColor0: downColor,
+            },
+            markPoint: {
+              data: markPoints,
+            },
+          },
+          {
+            name: "RSI",
+            type: "line",
+            xAxisIndex: 1,
+            yAxisIndex: 1,
+            data: rsiValues,
+            smooth: true,
+            lineStyle: {
+              width: 2,
+              color: "#f0b90b",
+            },
+            markLine: {
+              silent: true,
+              data: rsiLines.map((line) => ({
+                yAxis: line,
+                lineStyle: {
+                  color: line > 50 ? "#00C851" : "#ff4444",
+                  type: "dashed",
+                },
+                label: {
+                  formatter: `(${line})`,
+                },
+              })),
+            },
+          },
+        ],
+      };
+    }, [categoryData, candleValues, rsiValues, markPoints, rsiLines, title]);
 
-    const handleDataZoom = (params: any) => {
-      const zoom = params.batch ? params.batch[0] : params;
-      if (!zoom) return;
-
-      setZoomRange({ start: zoom.start, end: zoom.end });
-
-      const zoomRatio = (zoom.end - zoom.start) / 100;
-      const clamp = (num: number, min: number, max: number) =>
-        Math.min(Math.max(num, min), max);
-
-      const rsiSymbolSize = clamp(8 + 12 * (1 - zoomRatio), 8, 20);
-      const rsiFontSize = clamp(6 + 6 * (1 - zoomRatio), 6, 12);
-      const memoSymbolSize = clamp(30 + 20 * (1 - zoomRatio), 30, 50);
-      const memoFontSize = clamp(8 + 6 * (1 - zoomRatio), 8, 14);
-
-      setDynamicSizes({
-        rsiSymbol: rsiSymbolSize,
-        rsiFont: rsiFontSize,
-        memoSymbol: memoSymbolSize,
-        memoFont: memoFontSize,
-      });
-    };
-
-    const onEvents = {
-      click: (params: any) => {
-        if (params.seriesType === "candlestick") {
-          onChartClick?.(params);
-        }
-      },
-      datazoom: handleDataZoom,
-    };
+    const onEvents = useMemo(
+      () => ({
+        click: (params: any) => {
+          if (params.seriesType === "candlestick") {
+            onChartClick?.(params);
+          }
+        },
+      }),
+      [onChartClick],
+    );
 
     return (
       <div className="chart-container" style={{ height: "600px" }}>
