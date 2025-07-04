@@ -150,6 +150,67 @@
   background: #666;
 }
 
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.memo-settings {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  background-color: #2a2a2a;
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.memo-settings label {
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.memo-settings input {
+  background-color: #333;
+  border: 1px solid #555;
+  color: #fff;
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
+  width: 150px;
+}
+
+.memo-settings input:focus {
+  outline: none;
+  border-color: #f0b90b;
+}
+
+.memo-settings button {
+  padding: 0.4rem 1rem;
+  background: #f0b90b;
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.memo-settings button:hover {
+  background: #ffce3d;
+}
+
+.memo-settings .cancel-btn {
+  background: #555;
+  color: #fff;
+}
+
+.memo-settings .cancel-btn:hover {
+  background: #666;
+}
+
 .reset-zoom-btn {
   margin-top: 1rem;
   padding: 0.5rem 1rem;

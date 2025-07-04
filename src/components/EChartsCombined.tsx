@@ -1,14 +1,27 @@
 import type { EChartsOption } from "echarts";
 import ReactECharts from "echarts-for-react";
-import { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
+import {
+  forwardRef,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { CandleData } from "../types/candle";
 import type { RSIData } from "../utils/rsiCalculator";
+
+type Memo = {
+  index: number;
+  text: string;
+};
 
 type EChartsCombinedProps = {
   candleData: CandleData[];
   rsiData: RSIData[];
   rsiLines?: number[];
+  memos?: Memo[];
   title?: string;
+  onChartClick?: (params: any) => void;
 };
 
 export type EChartsCombinedRef = {
@@ -24,20 +37,31 @@ export const EChartsCombined = forwardRef<
       candleData,
       rsiData,
       rsiLines = [30, 70],
+      memos = [],
       title = "Trading Data (ECharts)",
+      onChartClick,
     },
     ref,
   ) => {
     const chartRef = useRef<ReactECharts>(null);
+    const [zoomRange, setZoomRange] = useState({ start: 0, end: 100 });
+    const [dynamicSizes, setDynamicSizes] = useState({
+      rsiSymbol: 10,
+      rsiFont: 6,
+      memoSymbol: 30,
+      memoFont: 8,
+    });
 
     useImperativeHandle(
       ref,
       () => ({
         resetZoom: () => {
-          chartRef.current?.getEchartsInstance()?.dispatchAction({
-            type: "dataZoom",
-            start: 0,
-            end: 100,
+          setZoomRange({ start: 0, end: 100 });
+          setDynamicSizes({
+            rsiSymbol: 10,
+            rsiFont: 6,
+            memoSymbol: 30,
+            memoFont: 8,
           });
         },
       }),
@@ -57,16 +81,16 @@ export const EChartsCombined = forwardRef<
         ]);
         const rsiValues = rsiData.map((item) => item.rsi);
 
-        // Calculate y-axis padding for markers to avoid overlap
         const allPrices = candleData.flatMap((candle) => [
           candle.low,
           candle.high,
         ]);
         const minPrice = Math.min(...allPrices);
         const maxPrice = Math.max(...allPrices);
-        const padding = (maxPrice - minPrice) * 0.05; // 5% of visible price range
+        const padding = (maxPrice - minPrice) * 0.05;
 
         const markPoints: any[] = [];
+
         if (
           rsiLines &&
           rsiLines.length > 0 &&
@@ -78,7 +102,6 @@ export const EChartsCombined = forwardRef<
             const currentRsi = rsiData[i].rsi;
 
             rsiLines.forEach((line) => {
-              // Crosses below line (potential SELL signal)
               if (prevRsi > line && currentRsi <= line) {
                 markPoints.push({
                   name: "Sell Signal",
@@ -86,18 +109,17 @@ export const EChartsCombined = forwardRef<
                   value: line,
                   symbol:
                     "path://M 0 0 L -2 -2 L -5 -2 L -5 -10 L 5 -10 L 5 -2 L 2 -2 Z",
-                  symbolSize: 15,
+                  symbolSize: dynamicSizes.rsiSymbol,
                   itemStyle: { color: "#ff4444" },
                   label: {
                     show: true,
                     formatter: "{c}",
-                    fontSize: 8,
+                    fontSize: dynamicSizes.rsiFont,
                     position: "inside",
                     color: "#fff",
                   },
                 });
               }
-              // Crosses above line (potential BUY signal)
               if (prevRsi < line && currentRsi >= line) {
                 markPoints.push({
                   name: "Buy Signal",
@@ -105,12 +127,12 @@ export const EChartsCombined = forwardRef<
                   value: line,
                   symbol:
                     "path://M 0 0 L -2 2 L -5 2 L -5 10 L 5 10 L 5 2 L 2 2 Z",
-                  symbolSize: 15,
+                  symbolSize: dynamicSizes.rsiSymbol,
                   itemStyle: { color: "#00C851" },
                   label: {
                     show: true,
                     formatter: "{c}",
-                    fontSize: 8,
+                    fontSize: dynamicSizes.rsiFont,
                     position: "inside",
                     color: "#fff",
                   },
@@ -120,8 +142,28 @@ export const EChartsCombined = forwardRef<
           }
         }
 
+        memos.forEach((memo) => {
+          if (candleData[memo.index]) {
+            markPoints.push({
+              name: "Memo",
+              coord: [memo.index, candleData[memo.index].high + padding * 2],
+              value: memo.text,
+              symbol: "pin",
+              symbolSize: dynamicSizes.memoSymbol,
+              itemStyle: { color: "#f0b90b" },
+              label: {
+                show: true,
+                formatter: "{c}",
+                fontSize: dynamicSizes.memoFont,
+                color: "#000",
+                offset: [0, -2],
+              },
+            });
+          }
+        });
+
         return { categoryData, candleValues, rsiValues, markPoints };
-      }, [candleData, rsiData, rsiLines]);
+      }, [candleData, rsiData, rsiLines, memos, dynamicSizes]);
 
     const upColor = "#00C851";
     const downColor = "#ff4444";
@@ -161,15 +203,16 @@ export const EChartsCombined = forwardRef<
           );
           const rsiParams = params.find((p: any) => p.seriesName === "RSI");
 
+          if (!candleParams) return "";
+
           let res = `Date: ${candleParams.axisValue}<br/>`;
 
-          if (candleParams) {
-            const data = candleParams.data;
-            res += `Open: ${data[1].toFixed(2)}<br/>`;
-            res += `Close: ${data[2].toFixed(2)}<br/>`;
-            res += `Low: ${data[3].toFixed(2)}<br/>`;
-            res += `High: ${data[4].toFixed(2)}<br/>`;
-          }
+          const data = candleParams.data;
+          res += `Open: ${data[1].toFixed(2)}<br/>`;
+          res += `Close: ${data[2].toFixed(2)}<br/>`;
+          res += `Low: ${data[3].toFixed(2)}<br/>`;
+          res += `High: ${data[4].toFixed(2)}<br/>`;
+
           if (rsiParams) {
             res += `RSI: ${rsiParams.data.toFixed(2)}<br/>`;
           }
@@ -259,16 +302,16 @@ export const EChartsCombined = forwardRef<
         {
           type: "inside",
           xAxisIndex: [0, 1],
-          start: 0,
-          end: 100,
+          start: zoomRange.start,
+          end: zoomRange.end,
         },
         {
           show: true,
           xAxisIndex: [0, 1],
           type: "slider",
           top: "90%",
-          start: 0,
-          end: 100,
+          start: zoomRange.start,
+          end: zoomRange.end,
           textStyle: { color: "#fff" },
         },
       ],
@@ -315,12 +358,45 @@ export const EChartsCombined = forwardRef<
       ],
     };
 
+    const handleDataZoom = (params: any) => {
+      const zoom = params.batch ? params.batch[0] : params;
+      if (!zoom) return;
+
+      setZoomRange({ start: zoom.start, end: zoom.end });
+
+      const zoomRatio = (zoom.end - zoom.start) / 100;
+      const clamp = (num: number, min: number, max: number) =>
+        Math.min(Math.max(num, min), max);
+
+      const rsiSymbolSize = clamp(8 + 12 * (1 - zoomRatio), 8, 20);
+      const rsiFontSize = clamp(6 + 6 * (1 - zoomRatio), 6, 12);
+      const memoSymbolSize = clamp(30 + 20 * (1 - zoomRatio), 30, 50);
+      const memoFontSize = clamp(8 + 6 * (1 - zoomRatio), 8, 14);
+
+      setDynamicSizes({
+        rsiSymbol: rsiSymbolSize,
+        rsiFont: rsiFontSize,
+        memoSymbol: memoSymbolSize,
+        memoFont: memoFontSize,
+      });
+    };
+
+    const onEvents = {
+      click: (params: any) => {
+        if (params.seriesType === "candlestick") {
+          onChartClick?.(params);
+        }
+      },
+      datazoom: handleDataZoom,
+    };
+
     return (
       <div className="chart-container" style={{ height: "600px" }}>
         <ReactECharts
           ref={chartRef}
           option={option}
           style={{ height: "100%", width: "100%" }}
+          onEvents={onEvents}
         />
       </div>
     );

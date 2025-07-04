@@ -12,13 +12,24 @@ import { generateCandleData } from "./utils/generateCandleData";
 import { calculateRSI } from "./utils/rsiCalculator";
 import "./App.css";
 
+type Memo = {
+  index: number;
+  text: string;
+};
+
 function App() {
   const [chartType, setChartType] = useState<"chartjs" | "echarts">("echarts");
   const candleData = useMemo(() => generateCandleData(1000), []);
   const rsiData = useMemo(() => calculateRSI(candleData, 14), [candleData]);
 
-  const [rsiLines, setRsiLines] = useState([20, 80]);
-  const [rsiLinesInput, setRsiLinesInput] = useState("20, 80");
+  const [rsiLines, setRsiLines] = useState([30, 70]);
+  const [rsiLinesInput, setRsiLinesInput] = useState("30, 70");
+
+  const [memos, setMemos] = useState<Memo[]>([]);
+  const [selectedCandleIndex, setSelectedCandleIndex] = useState<number | null>(
+    null,
+  );
+  const [memoInput, setMemoInput] = useState("");
 
   const candleChartRef = useRef<CandlestickChartRef>(null);
   const echartsCombinedRef = useRef<EChartsCombinedRef>(null);
@@ -68,6 +79,22 @@ function App() {
     setRsiLines(lines);
   };
 
+  const handleChartClick = (params: any) => {
+    setSelectedCandleIndex(params.dataIndex);
+    setMemoInput("");
+  };
+
+  const handleAddMemo = () => {
+    if (selectedCandleIndex !== null && memoInput.trim() !== "") {
+      setMemos((prevMemos) => [
+        ...prevMemos,
+        { index: selectedCandleIndex, text: memoInput.trim() },
+      ]);
+      setSelectedCandleIndex(null);
+      setMemoInput("");
+    }
+  };
+
   return (
     <div className="app">
       <header className="app-header">
@@ -90,21 +117,46 @@ function App() {
         </div>
 
         {chartType === "echarts" && (
-          <div className="rsi-settings">
-            <label htmlFor="rsi-lines-input">RSI Lines:</label>
-            <input
-              id="rsi-lines-input"
-              type="text"
-              value={rsiLinesInput}
-              onChange={(e) => setRsiLinesInput(e.target.value)}
-              placeholder="e.g., 20, 80"
-            />
-            <button onClick={handleRsiLinesChange}>Apply</button>
+          <div className="settings-group">
+            <div className="rsi-settings">
+              <label htmlFor="rsi-lines-input">RSI Lines:</label>
+              <input
+                id="rsi-lines-input"
+                type="text"
+                value={rsiLinesInput}
+                onChange={(e) => setRsiLinesInput(e.target.value)}
+                placeholder="e.g., 20, 80"
+              />
+              <button onClick={handleRsiLinesChange}>Apply</button>
+            </div>
+            {selectedCandleIndex !== null && (
+              <div className="memo-settings">
+                <label htmlFor="memo-input">
+                  Memo for{" "}
+                  {candleData[selectedCandleIndex]?.start.toLocaleDateString()}:
+                </label>
+                <input
+                  id="memo-input"
+                  type="text"
+                  value={memoInput}
+                  onChange={(e) => setMemoInput(e.target.value)}
+                  placeholder="Enter a note"
+                />
+                <button onClick={handleAddMemo}>Add Memo</button>
+                <button
+                  onClick={() => setSelectedCandleIndex(null)}
+                  className="cancel-btn"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         <p className="zoom-info">
-          Use mouse wheel to zoom, click and drag to pan
+          Use mouse wheel to zoom, click and drag to pan. Click on a candle to
+          add a memo.
         </p>
         <button className="reset-zoom-btn" onClick={handleResetZoom}>
           Reset Zoom
@@ -138,7 +190,9 @@ function App() {
               candleData={candleData}
               rsiData={rsiData}
               rsiLines={rsiLines}
+              memos={memos}
               title="Sample Trading Data (ECharts)"
+              onChartClick={handleChartClick}
             />
           </div>
         )}
