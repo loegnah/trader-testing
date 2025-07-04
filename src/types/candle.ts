@@ -5,4 +5,4 @@ export type CandleData = {
   low: number;
   start: Date;
   end: Date;
-}; 
+};
