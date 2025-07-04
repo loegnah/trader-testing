@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import type { CandleData } from '../types/candle';
@@ -7,6 +7,7 @@ import type { RSIData } from '../utils/rsiCalculator';
 type EChartsCombinedProps = {
   candleData: CandleData[];
   rsiData: RSIData[];
+  rsiLines?: number[];
   title?: string;
 };
 
@@ -15,7 +16,7 @@ export type EChartsCombinedRef = {
 };
 
 export const EChartsCombined = forwardRef<EChartsCombinedRef, EChartsCombinedProps>(
-  ({ candleData, rsiData, title = "Trading Data (ECharts)" }, ref) => {
+  ({ candleData, rsiData, rsiLines = [30, 70], title = "Trading Data (ECharts)" }, ref) => {
     const chartRef = useRef<ReactECharts>(null);
 
     useImperativeHandle(ref, () => ({
@@ -28,9 +29,66 @@ export const EChartsCombined = forwardRef<EChartsCombinedRef, EChartsCombinedPro
       }
     }), []);
 
-    const categoryData = candleData.map(item => item.start.toLocaleDateString());
-    const candleValues = candleData.map(item => [item.open, item.close, item.low, item.high]);
-    const rsiValues = rsiData.map(item => item.rsi);
+    const { categoryData, candleValues, rsiValues, markPoints } = useMemo(() => {
+        const categoryData = candleData.map(item => item.start.toLocaleDateString());
+        const candleValues = candleData.map(item => [item.open, item.close, item.low, item.high]);
+        const rsiValues = rsiData.map(item => item.rsi);
+
+        // Calculate y-axis padding for markers to avoid overlap
+        const allPrices = candleData.flatMap(candle => [candle.low, candle.high]);
+        const minPrice = Math.min(...allPrices);
+        const maxPrice = Math.max(...allPrices);
+        const padding = (maxPrice - minPrice) * 0.05; // 5% of visible price range
+
+        const markPoints: any[] = [];
+        if(rsiLines && rsiLines.length > 0 && rsiData.length > 1 && candleData.length > 1) {
+            for (let i = 1; i < rsiData.length; i++) {
+                const prevRsi = rsiData[i - 1].rsi;
+                const currentRsi = rsiData[i].rsi;
+        
+                rsiLines.forEach(line => {
+                    // Crosses below line (potential SELL signal)
+                    if (prevRsi > line && currentRsi <= line) {
+                        markPoints.push({
+                            name: 'Sell Signal',
+                            coord: [i, candleData[i].high + padding],
+                            value: line,
+                            symbol: 'path://M 0 0 L -2 -2 L -5 -2 L -5 -10 L 5 -10 L 5 -2 L 2 -2 Z',
+                            symbolSize: 15,
+                            itemStyle: { color: '#ff4444' },
+                            label: {
+                                show: true,
+                                formatter: '{c}',
+                                fontSize: 8,
+                                position: 'inside',
+                                color: '#fff'
+                            }
+                        });
+                    }
+                    // Crosses above line (potential BUY signal)
+                    if (prevRsi < line && currentRsi >= line) {
+                        markPoints.push({
+                            name: 'Buy Signal',
+                            coord: [i, candleData[i].low - padding],
+                            value: line,
+                            symbol: 'path://M 0 0 L -2 2 L -5 2 L -5 10 L 5 10 L 5 2 L 2 2 Z',
+                            symbolSize: 15,
+                            itemStyle: { color: '#00C851' },
+                            label: {
+                                show: true,
+                                formatter: '{c}',
+                                fontSize: 8,
+                                position: 'inside',
+                                color: '#fff'
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        return { categoryData, candleValues, rsiValues, markPoints };
+    }, [candleData, rsiData, rsiLines]);
 
     const upColor = '#00C851';
     const downColor = '#ff4444';
@@ -189,6 +247,9 @@ export const EChartsCombined = forwardRef<EChartsCombinedRef, EChartsCombinedPro
             color0: downColor,
             borderColor: upColor,
             borderColor0: downColor
+          },
+          markPoint: {
+            data: markPoints
           }
         },
         {
@@ -204,28 +265,16 @@ export const EChartsCombined = forwardRef<EChartsCombinedRef, EChartsCombinedPro
           },
           markLine: {
             silent: true,
-            data: [
-              {
-                yAxis: 30,
+            data: rsiLines.map(line => ({
+                yAxis: line,
                 lineStyle: {
-                  color: '#ff4444',
+                  color: line > 50 ? '#00C851' : '#ff4444',
                   type: 'dashed'
                 },
                 label: {
-                  formatter: 'Oversold (30)'
+                  formatter: `${line > 50 ? 'Overbought' : 'Oversold'} (${line})`
                 }
-              },
-              {
-                yAxis: 70,
-                lineStyle: {
-                  color: '#00C851',
-                  type: 'dashed'
-                },
-                label: {
-                  formatter: 'Overbought (70)'
-                }
-              }
-            ]
+            }))
           }
         }
       ]

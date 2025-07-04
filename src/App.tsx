@@ -7,10 +7,13 @@ import { calculateRSI } from './utils/rsiCalculator'
 import './App.css'
 
 function App() {
-  const [chartType, setChartType] = useState<'chartjs' | 'echarts'>('chartjs')
-  const candleData = useMemo(() => generateCandleData(50), [])
+  const [chartType, setChartType] = useState<'chartjs' | 'echarts'>('echarts')
+  const candleData = useMemo(() => generateCandleData(1000), [])
   const rsiData = useMemo(() => calculateRSI(candleData, 14), [candleData])
   
+  const [rsiLines, setRsiLines] = useState([20, 80]);
+  const [rsiLinesInput, setRsiLinesInput] = useState('20, 80');
+
   const candleChartRef = useRef<CandlestickChartRef>(null)
   const echartsCombinedRef = useRef<EChartsCombinedRef>(null)
   const rsiChartRef = useRef<RSIChartRef>(null)
@@ -51,6 +54,11 @@ function App() {
     }
   }
 
+  const handleRsiLinesChange = () => {
+    const lines = rsiLinesInput.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n));
+    setRsiLines(lines);
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -71,6 +79,20 @@ function App() {
             ECharts
           </button>
         </div>
+
+        {chartType === 'echarts' && (
+          <div className="rsi-settings">
+            <label htmlFor="rsi-lines-input">RSI Lines:</label>
+            <input
+              id="rsi-lines-input"
+              type="text"
+              value={rsiLinesInput}
+              onChange={(e) => setRsiLinesInput(e.target.value)}
+              placeholder="e.g., 20, 80"
+            />
+            <button onClick={handleRsiLinesChange}>Apply</button>
+          </div>
+        )}
         
         <p className="zoom-info">Use mouse wheel to zoom, click and drag to pan</p>
         <button className="reset-zoom-btn" onClick={handleResetZoom}>
@@ -104,6 +126,7 @@ function App() {
               ref={echartsCombinedRef}
               candleData={candleData}
               rsiData={rsiData}
+              rsiLines={rsiLines}
               title="Sample Trading Data (ECharts)"
             />
           </div>
