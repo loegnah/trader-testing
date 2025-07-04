@@ -87,7 +87,7 @@ export const EChartsCombined = forwardRef<
         ]);
         const minPrice = Math.min(...allPrices);
         const maxPrice = Math.max(...allPrices);
-        const padding = (maxPrice - minPrice) * 0.05;
+        const padding = (maxPrice - minPrice) * 0.02;
 
         const markPoints: any[] = [];
 
@@ -105,7 +105,7 @@ export const EChartsCombined = forwardRef<
               if (prevRsi > line && currentRsi <= line) {
                 markPoints.push({
                   name: "Sell Signal",
-                  coord: [i, candleData[i].high + padding],
+                  coord: [i, candleData[i].high + padding * 0.5],
                   value: line,
                   symbol:
                     "path://M 0 0 L -2 -2 L -5 -2 L -5 -10 L 5 -10 L 5 -2 L 2 -2 Z",
@@ -123,7 +123,7 @@ export const EChartsCombined = forwardRef<
               if (prevRsi < line && currentRsi >= line) {
                 markPoints.push({
                   name: "Buy Signal",
-                  coord: [i, candleData[i].low - padding],
+                  coord: [i, candleData[i].low - padding * 0.5],
                   value: line,
                   symbol:
                     "path://M 0 0 L -2 2 L -5 2 L -5 10 L 5 10 L 5 2 L 2 2 Z",
@@ -144,20 +144,37 @@ export const EChartsCombined = forwardRef<
 
         memos.forEach((memo) => {
           if (candleData[memo.index]) {
+            const textLengthOffset =
+              Math.max(memo.text.length - 5, 0) * padding * 0.1;
+            const baseOffset = padding * 0.6;
+            const memoPosition =
+              candleData[memo.index].high + baseOffset + textLengthOffset;
+            const pointerPosition = candleData[memo.index].high + padding * 0.2;
+
             markPoints.push({
               name: "Memo",
-              coord: [memo.index, candleData[memo.index].high + padding * 2],
+              coord: [memo.index, memoPosition],
               value: memo.text,
               symbol: "pin",
               symbolSize: dynamicSizes.memoSymbol,
-              itemStyle: { color: "#f0b90b" },
+              itemStyle: { color: "transparent" },
               label: {
                 show: true,
                 formatter: "{c}",
                 fontSize: dynamicSizes.memoFont,
-                color: "#000",
+                color: "#fff",
                 offset: [0, -2],
               },
+            });
+
+            markPoints.push({
+              name: "Memo Pointer",
+              coord: [memo.index, pointerPosition],
+              symbol: "triangle",
+              symbolSize: 8,
+              symbolRotate: 180,
+              itemStyle: { color: "#fff" },
+              label: { show: false },
             });
           }
         });
@@ -170,6 +187,7 @@ export const EChartsCombined = forwardRef<
 
     const option: EChartsOption = {
       animation: false,
+      backgroundColor: "#000000",
       title: {
         text: title,
         left: "center",
@@ -273,16 +291,13 @@ export const EChartsCombined = forwardRef<
         {
           scale: true,
           splitArea: {
-            show: true,
-            areaStyle: {
-              color: ["rgba(255, 255, 255, 0.02)", "rgba(255, 255, 255, 0.05)"],
-            },
+            show: false,
           },
           axisLine: {
             lineStyle: { color: "#fff" },
           },
           splitLine: {
-            lineStyle: { color: "rgba(255, 255, 255, 0.1)" },
+            show: false,
           },
           axisLabel: {
             color: "#fff",
@@ -296,6 +311,7 @@ export const EChartsCombined = forwardRef<
           axisLine: { show: false },
           axisTick: { show: false },
           splitLine: { show: false },
+          splitArea: { show: false },
         },
       ],
       dataZoom: [
