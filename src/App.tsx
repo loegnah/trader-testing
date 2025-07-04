@@ -1,6 +1,6 @@
 import { useMemo, useRef, useCallback, useState } from 'react'
 import { CandlestickChart, type CandlestickChartRef } from './components/CandlestickChart'
-import { CandlestickChartECharts, type CandlestickChartEChartsRef } from './components/CandlestickChartECharts'
+import { EChartsCombined, type EChartsCombinedRef } from './components/EChartsCombined'
 import { RSIChart, type RSIChartRef } from './components/RSIChart'
 import { generateCandleData } from './utils/generateCandleData'
 import { calculateRSI } from './utils/rsiCalculator'
@@ -12,7 +12,7 @@ function App() {
   const rsiData = useMemo(() => calculateRSI(candleData, 14), [candleData])
   
   const candleChartRef = useRef<CandlestickChartRef>(null)
-  const candleEChartsRef = useRef<CandlestickChartEChartsRef>(null)
+  const echartsCombinedRef = useRef<EChartsCombinedRef>(null)
   const rsiChartRef = useRef<RSIChartRef>(null)
   const isUpdatingRef = useRef<string | null>(null)
 
@@ -33,24 +33,22 @@ function App() {
     if (isUpdatingRef.current === 'rsi') return
     
     isUpdatingRef.current = 'candle'
-    if (chartType === 'chartjs' && candleChartRef.current) {
+    if (candleChartRef.current) {
       candleChartRef.current.zoomToRange(min, max)
-    } else if (chartType === 'echarts' && candleEChartsRef.current) {
-      candleEChartsRef.current.zoomToRange(min, max)
     }
     
     setTimeout(() => {
       isUpdatingRef.current = null
     }, 200)
-  }, [chartType])
+  }, [])
 
   const handleResetZoom = () => {
     if (chartType === 'chartjs') {
       candleChartRef.current?.resetZoom()
+      rsiChartRef.current?.resetZoom()
     } else {
-      candleEChartsRef.current?.resetZoom()
+      echartsCombinedRef.current?.resetZoom()
     }
-    rsiChartRef.current?.resetZoom()
   }
 
   return (
@@ -81,32 +79,35 @@ function App() {
       </header>
       
       <main className="app-main">
-        <div className="chart-wrapper">
-          {chartType === 'chartjs' ? (
-            <CandlestickChart 
-              ref={candleChartRef}
-              data={candleData} 
-              title="Sample Trading Data (Chart.js)"
-              onZoom={handleCandleZoom}
-            />
-          ) : (
-            <CandlestickChartECharts 
-              ref={candleEChartsRef}
-              data={candleData} 
+        {chartType === 'chartjs' ? (
+          <>
+            <div className="chart-wrapper">
+              <CandlestickChart 
+                ref={candleChartRef}
+                data={candleData} 
+                title="Sample Trading Data (Chart.js)"
+                onZoom={handleCandleZoom}
+              />
+            </div>
+            <div className="rsi-wrapper">
+              <RSIChart 
+                ref={rsiChartRef}
+                data={rsiData} 
+                title="RSI (14)"
+                onZoom={handleRsiZoom}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="chart-wrapper">
+            <EChartsCombined
+              ref={echartsCombinedRef}
+              candleData={candleData}
+              rsiData={rsiData}
               title="Sample Trading Data (ECharts)"
-              onZoom={handleCandleZoom}
             />
-          )}
-        </div>
-        
-        <div className="rsi-wrapper">
-          <RSIChart 
-            ref={rsiChartRef}
-            data={rsiData} 
-            title="RSI (14)"
-            onZoom={handleRsiZoom}
-          />
-        </div>
+          </div>
+        )}
         
         <div className="data-info">
           <h3>Data Summary</h3>
