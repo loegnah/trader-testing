@@ -329,11 +329,14 @@ export const EChartsCombined = forwardRef<
             name: "Candlestick",
             type: "candlestick",
             data: candleValues,
+            barWidth: "95%",
             itemStyle: {
               color: upColor,
               color0: downColor,
               borderColor: upColor,
               borderColor0: downColor,
+              borderWidth: 1,
+              borderWidth0: 1,
             },
             markPoint: {
               data: markPoints,
