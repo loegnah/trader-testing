@@ -1,13 +1,8 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import {
-  CandlestickChart,
-  type CandlestickChartRef,
-} from "./components/CandlestickChart";
+import { useMemo, useRef, useState } from "react";
 import {
   EChartsCombined,
   type EChartsCombinedRef,
 } from "./components/EChartsCombined";
-import { RSIChart, type RSIChartRef } from "./components/RSIChart";
 import { generateCandleData } from "./utils/generateCandleData";
 import { calculateRSI } from "./utils/rsiCalculator";
 import "./App.css";
@@ -18,7 +13,6 @@ type Memo = {
 };
 
 function App() {
-  const [chartType, setChartType] = useState<"chartjs" | "echarts">("echarts");
   const candleData = useMemo(() => generateCandleData(1000), []);
   const rsiData = useMemo(() => calculateRSI(candleData, 14), [candleData]);
 
@@ -31,44 +25,10 @@ function App() {
   );
   const [memoInput, setMemoInput] = useState("");
 
-  const candleChartRef = useRef<CandlestickChartRef>(null);
   const echartsCombinedRef = useRef<EChartsCombinedRef>(null);
-  const rsiChartRef = useRef<RSIChartRef>(null);
-  const isUpdatingRef = useRef<string | null>(null);
-
-  const handleCandleZoom = useCallback((min: number, max: number) => {
-    if (isUpdatingRef.current === "candle") return;
-
-    isUpdatingRef.current = "rsi";
-    if (rsiChartRef.current) {
-      rsiChartRef.current.zoomToRange(min, max);
-    }
-
-    setTimeout(() => {
-      isUpdatingRef.current = null;
-    }, 200);
-  }, []);
-
-  const handleRsiZoom = useCallback((min: number, max: number) => {
-    if (isUpdatingRef.current === "rsi") return;
-
-    isUpdatingRef.current = "candle";
-    if (candleChartRef.current) {
-      candleChartRef.current.zoomToRange(min, max);
-    }
-
-    setTimeout(() => {
-      isUpdatingRef.current = null;
-    }, 200);
-  }, []);
 
   const handleResetZoom = () => {
-    if (chartType === "chartjs") {
-      candleChartRef.current?.resetZoom();
-      rsiChartRef.current?.resetZoom();
-    } else {
-      echartsCombinedRef.current?.resetZoom();
-    }
+    echartsCombinedRef.current?.resetZoom();
   };
 
   const handleRsiLinesChange = () => {
@@ -101,58 +61,41 @@ function App() {
         <h1>Trading Strategy Tester</h1>
         <p>Candlestick Chart Analysis</p>
 
-        <div className="chart-selector">
-          <button
-            className={`chart-selector-btn ${chartType === "chartjs" ? "active" : ""}`}
-            onClick={() => setChartType("chartjs")}
-          >
-            Chart.js
-          </button>
-          <button
-            className={`chart-selector-btn ${chartType === "echarts" ? "active" : ""}`}
-            onClick={() => setChartType("echarts")}
-          >
-            ECharts
-          </button>
-        </div>
-
-        {chartType === "echarts" && (
-          <div className="settings-group">
-            <div className="rsi-settings">
-              <label htmlFor="rsi-lines-input">RSI Lines:</label>
-              <input
-                id="rsi-lines-input"
-                type="text"
-                value={rsiLinesInput}
-                onChange={(e) => setRsiLinesInput(e.target.value)}
-                placeholder="e.g., 20, 80"
-              />
-              <button onClick={handleRsiLinesChange}>Apply</button>
-            </div>
-            {selectedCandleIndex !== null && (
-              <div className="memo-settings">
-                <label htmlFor="memo-input">
-                  Memo for{" "}
-                  {candleData[selectedCandleIndex]?.start.toLocaleDateString()}:
-                </label>
-                <input
-                  id="memo-input"
-                  type="text"
-                  value={memoInput}
-                  onChange={(e) => setMemoInput(e.target.value)}
-                  placeholder="Enter a note"
-                />
-                <button onClick={handleAddMemo}>Add Memo</button>
-                <button
-                  onClick={() => setSelectedCandleIndex(null)}
-                  className="cancel-btn"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
+        <div className="settings-group">
+          <div className="rsi-settings">
+            <label htmlFor="rsi-lines-input">RSI Lines:</label>
+            <input
+              id="rsi-lines-input"
+              type="text"
+              value={rsiLinesInput}
+              onChange={(e) => setRsiLinesInput(e.target.value)}
+              placeholder="e.g., 20, 80"
+            />
+            <button onClick={handleRsiLinesChange}>Apply</button>
           </div>
-        )}
+          {selectedCandleIndex !== null && (
+            <div className="memo-settings">
+              <label htmlFor="memo-input">
+                Memo for{" "}
+                {candleData[selectedCandleIndex]?.start.toLocaleDateString()}:
+              </label>
+              <input
+                id="memo-input"
+                type="text"
+                value={memoInput}
+                onChange={(e) => setMemoInput(e.target.value)}
+                placeholder="Enter a note"
+              />
+              <button onClick={handleAddMemo}>Add Memo</button>
+              <button
+                onClick={() => setSelectedCandleIndex(null)}
+                className="cancel-btn"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
 
         <p className="zoom-info">
           Use mouse wheel to zoom, click and drag to pan. Click on a candle to
@@ -164,38 +107,17 @@ function App() {
       </header>
 
       <main className="app-main">
-        {chartType === "chartjs" ? (
-          <>
-            <div className="chart-wrapper">
-              <CandlestickChart
-                ref={candleChartRef}
-                data={candleData}
-                title="Sample Trading Data (Chart.js)"
-                onZoom={handleCandleZoom}
-              />
-            </div>
-            <div className="rsi-wrapper">
-              <RSIChart
-                ref={rsiChartRef}
-                data={rsiData}
-                title="RSI (14)"
-                onZoom={handleRsiZoom}
-              />
-            </div>
-          </>
-        ) : (
-          <div className="chart-wrapper">
-            <EChartsCombined
-              ref={echartsCombinedRef}
-              candleData={candleData}
-              rsiData={rsiData}
-              rsiLines={rsiLines}
-              memos={memos}
-              title="Sample Trading Data (ECharts)"
-              onChartClick={handleChartClick}
-            />
-          </div>
-        )}
+        <div className="chart-wrapper">
+          <EChartsCombined
+            ref={echartsCombinedRef}
+            candleData={candleData}
+            rsiData={rsiData}
+            rsiLines={rsiLines}
+            memos={memos}
+            title="Sample Trading Data (ECharts)"
+            onChartClick={handleChartClick}
+          />
+        </div>
 
         <div className="data-info">
           <h3>Data Summary</h3>
