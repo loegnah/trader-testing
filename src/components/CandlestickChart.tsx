@@ -1,17 +1,20 @@
 import {
-  Chart as ChartJS,
   CategoryScale,
+  Chart as ChartJS,
+  Legend,
   LinearScale,
   TimeScale,
   Tooltip,
-  Legend,
-} from 'chart.js';
-import { Chart } from 'react-chartjs-2';
-import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
-import zoomPlugin from 'chartjs-plugin-zoom';
-import 'chartjs-adapter-date-fns';
-import type { CandleData } from '../types/candle';
-import { useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
+} from "chart.js";
+import {
+  CandlestickController,
+  CandlestickElement,
+} from "chartjs-chart-financial";
+import zoomPlugin from "chartjs-plugin-zoom";
+import { Chart } from "react-chartjs-2";
+import "chartjs-adapter-date-fns";
+import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import type { CandleData } from "../types/candle";
 
 ChartJS.register(
   CategoryScale,
@@ -21,7 +24,7 @@ ChartJS.register(
   Legend,
   CandlestickController,
   CandlestickElement,
-  zoomPlugin
+  zoomPlugin,
 );
 
 type CandlestickChartProps = {
@@ -35,49 +38,59 @@ export type CandlestickChartRef = {
   zoomToRange: (min: number, max: number) => void;
 };
 
-export const CandlestickChart = forwardRef<CandlestickChartRef, CandlestickChartProps>(({ data, title = "Candlestick Chart", onZoom }, ref) => {
+export const CandlestickChart = forwardRef<
+  CandlestickChartRef,
+  CandlestickChartProps
+>(({ data, title = "Candlestick Chart", onZoom }, ref) => {
   const chartRef = useRef<ChartJS>(null);
   const debounceTimerRef = useRef<number | null>(null);
 
-  const debouncedOnZoom = useCallback((min: number, max: number) => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    debounceTimerRef.current = setTimeout(() => {
-      onZoom?.(min, max);
-    }, 50);
-  }, [onZoom]);
-
-  useImperativeHandle(ref, () => ({
-    resetZoom: () => {
-      if (chartRef.current) {
-        chartRef.current.resetZoom();
+  const debouncedOnZoom = useCallback(
+    (min: number, max: number) => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
       }
+      debounceTimerRef.current = setTimeout(() => {
+        onZoom?.(min, max);
+      }, 50);
     },
-    zoomToRange: (min: number, max: number) => {
-      if (chartRef.current) {
-        chartRef.current.zoomScale('x', { min, max }, 'none');
-      }
-    }
-  }), []);
+    [onZoom],
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      resetZoom: () => {
+        if (chartRef.current) {
+          chartRef.current.resetZoom();
+        }
+      },
+      zoomToRange: (min: number, max: number) => {
+        if (chartRef.current) {
+          chartRef.current.zoomScale("x", { min, max }, "none");
+        }
+      },
+    }),
+    [],
+  );
   const chartData = {
     datasets: [
       {
-        label: 'Price',
-        data: data.map(candle => ({
+        label: "Price",
+        data: data.map((candle) => ({
           x: candle.start.getTime(),
           o: candle.open,
           h: candle.high,
           l: candle.low,
           c: candle.close,
         })),
-        borderColor: '#000',
-        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        borderColor: "#000",
+        backgroundColor: "rgba(0, 0, 0, 0.1)",
         borderWidth: 1,
         color: {
-          up: '#00C851',
-          down: '#ff4444',
-          unchanged: '#666',
+          up: "#00C851",
+          down: "#ff4444",
+          unchanged: "#666",
         },
       },
     ],
@@ -93,10 +106,10 @@ export const CandlestickChart = forwardRef<CandlestickChartRef, CandlestickChart
       title: {
         display: true,
         text: title,
-        color: '#fff',
+        color: "#fff",
       },
       tooltip: {
-        mode: 'index' as const,
+        mode: "index" as const,
         intersect: false,
         callbacks: {
           label: (context: any) => {
@@ -118,7 +131,7 @@ export const CandlestickChart = forwardRef<CandlestickChartRef, CandlestickChart
           pinch: {
             enabled: true,
           },
-          mode: 'x' as const,
+          mode: "x" as const,
           onZoom: (context: any) => {
             if (context.chart.scales.x) {
               const { min, max } = context.chart.scales.x;
@@ -128,7 +141,7 @@ export const CandlestickChart = forwardRef<CandlestickChartRef, CandlestickChart
         },
         pan: {
           enabled: true,
-          mode: 'x' as const,
+          mode: "x" as const,
           onPan: (context: any) => {
             if (context.chart.scales.x) {
               const { min, max } = context.chart.scales.x;
@@ -138,34 +151,34 @@ export const CandlestickChart = forwardRef<CandlestickChartRef, CandlestickChart
         },
         limits: {
           x: {
-            min: 'original' as const,
-            max: 'original' as const,
+            min: "original" as const,
+            max: "original" as const,
           },
         },
       },
     },
     scales: {
       x: {
-        type: 'time' as const,
+        type: "time" as const,
         time: {
-          unit: 'day' as const,
+          unit: "day" as const,
           displayFormats: {
-            day: 'MMM dd',
+            day: "MMM dd",
           },
         },
         grid: {
-          color: 'rgba(255, 255, 255, 0.1)',
+          color: "rgba(255, 255, 255, 0.1)",
         },
         ticks: {
-          color: '#fff',
+          color: "#fff",
         },
       },
       y: {
         grid: {
-          color: 'rgba(255, 255, 255, 0.1)',
+          color: "rgba(255, 255, 255, 0.1)",
         },
         ticks: {
-          color: '#fff',
+          color: "#fff",
         },
       },
     },
@@ -173,7 +186,12 @@ export const CandlestickChart = forwardRef<CandlestickChartRef, CandlestickChart
 
   return (
     <div className="chart-container">
-      <Chart ref={chartRef} type="candlestick" data={chartData} options={options} />
+      <Chart
+        ref={chartRef}
+        type="candlestick"
+        data={chartData}
+        options={options}
+      />
     </div>
   );
-}); 
+});
